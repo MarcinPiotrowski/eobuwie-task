@@ -1,7 +1,7 @@
 <template>
   <div>
     <h1>
-      {{text}}
+      {{ text }}
     </h1>
   </div>
 </template>
@@ -12,10 +12,10 @@ export default {
   props: {
     text: {
       type: String,
-      required: true
-    }
-  }
-}
+      required: true,
+    },
+  },
+};
 </script>
 
 <style scoped>
