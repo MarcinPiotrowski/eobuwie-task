@@ -30,6 +30,8 @@ module.exports = {
     'object-curly-spacing': ['error', 'always'],
     'vue/object-curly-spacing': ['error', 'always'],
     'vue/mustache-interpolation-spacing': ['error', 'always'],
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
   },
   overrides: [
     {
