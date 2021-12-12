@@ -26,10 +26,15 @@ module.exports = {
       "functions": "never"
       }
     ],
-    'no-unused-vars': 'error',
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": "error",
     'object-curly-spacing': ['error', 'always'],
+    'array-bracket-spacing': ['error', 'always'],
+    'space-before-function-paren': ['error', 'never'],
     'vue/object-curly-spacing': ['error', 'always'],
     'vue/mustache-interpolation-spacing': ['error', 'always'],
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
   },
   overrides: [
     {

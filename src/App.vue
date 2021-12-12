@@ -1,15 +1,12 @@
 <template>
-  <div id="app">
-    <HelloWorld text="Hello world!" />
-  </div>
+  <div id="app" />
 </template>
 
 <script lang="ts">
-import HelloWorld from './components/HelloWorld.vue';
 
 export default {
   name: 'App',
-  components: { HelloWorld, },
+  components: { },
 };
 </script>
 
