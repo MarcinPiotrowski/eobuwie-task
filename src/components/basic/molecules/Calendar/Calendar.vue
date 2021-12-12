@@ -5,7 +5,10 @@
       @onPreviousMonth="onPreviousMonth"
       @onNextMonth="onNextMonth"
     />
-    <div class="eo-calendar-days">
+    <div
+      class="eo-calendar-days"
+      @mouseleave="onMouseLeave()"
+    >
       <div
         v-for="dayOfWeek of daysOfWeeks"
         :key="dayOfWeek"
@@ -14,13 +17,24 @@
         {{ dayOfWeek }}
       </div>
       <CustomButton
-        v-for="day of daysForCurrentMonth"
-        :key="day.key"
+        v-for="{ key, isToday, disabled, isStart, isEnd, isBetween, date, day } of daysForCurrentMonth"
+        :key="key"
         class="eo-text-small eo-day-button"
-        :class="{ 'eo-today': day.isToday, 'eo-disabled': day.disabled }"
+        :class="{ 'eo-today': isToday,
+                  'eo-disabled': disabled,
+                  'eo-start-day': isStart,
+                  'eo-end-day': isEnd,
+                  'eo-between': isBetween }"
         :custom-styles="false"
+        :disabled="disabled"
+        @onClick="selectDate(date)"
       >
-        {{ day.day }}
+        <div
+          class="eo-day-inner"
+          @mouseenter="onMouseHover(date, disabled)"
+        >
+          {{ day }}
+        </div>
       </CustomButton>
     </div>
   </div>
@@ -37,7 +51,7 @@ import {
   subDays,
   getDate,
   addMonths,
-  subMonths
+  subMonths, isAfter, isBefore
 } from 'date-fns';
 import Vue, { PropType } from 'vue';
 import CustomButton from '@/components/basic/atoms/CustomButton.vue';
@@ -46,6 +60,7 @@ import CalendarNavigation from '@/components/basic/molecules/Calendar/CalendarNa
 const DAYS_SHORT = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ];
 
 interface CalendarDay {
+  date: Date;
   key: string;
   day: number;
   disabled: boolean;
@@ -71,28 +86,44 @@ export default Vue.extend({
   data() {
     return {
       currentDate: new Date(),
+      startDateSelected: false,
+      endDateSelected: false,
+      isMouseHover: false,
+      startDate: new Date(),
+      endDate: new Date(),
+      hoverDate: new Date(),
     };
   },
   computed: {
+    startDayOfWeekNormalized(): number {
+      return this.startDayOfWeek % 7;
+    },
     daysOfWeeks(): string[] {
-      return [ ...DAYS_SHORT.slice(this.startDayOfWeek), ...DAYS_SHORT.slice(0, this.startDayOfWeek), ];
+      return [ ...DAYS_SHORT.slice(this.startDayOfWeekNormalized), ...DAYS_SHORT.slice(0, this.startDayOfWeekNormalized), ];
     },
     daysForCurrentMonth(): CalendarDay[] {
-      const result: CalendarDay[] = [];
-      const { startDayOfCalendar, endDayOfCalendar, } = this;
-      let currentDay = startDayOfCalendar;
       const today = new Date();
-      const startDayOfNextMonth = addDays(endDayOfCalendar, 1);
+      return this.simpleDaysForCurrentMonth.map(d => {
+        const key = dateToKey(d);
+        return {
+          date: d,
+          day: getDate(d),
+          disabled: this.disabledSet.has(key),
+          isBetween: this.isDateBetween(d),
+          isStart: this.isStartDay(d),
+          isEnd: this.isEndDay(d),
+          isToday: isSameDay(d, today),
+          key,
+        };
+      }
+      );
+    },
+    simpleDaysForCurrentMonth(): Date[] {
+      const result: Date[] = [];
+      const { startDayOfCalendar, startDayOfNextMonth, } = this;
+      let currentDay = startDayOfCalendar;
       while (!isSameDay(currentDay, startDayOfNextMonth)) {
-        result.push({
-          day: getDate(currentDay),
-          disabled: this.disabledSet.has(this.dateToKey(currentDay)),
-          isBetween: false,
-          isEnd: false,
-          isStart: false,
-          isToday: isSameDay(currentDay, today),
-          key: this.dateToKey(currentDay),
-        });
+        result.push(currentDay);
         currentDay = addDays(currentDay, 1);
       }
 
@@ -106,20 +137,32 @@ export default Vue.extend({
     },
     startDayOfCalendar(): Date {
       let currentDate = new Date(this.currentYear, this.currentMonth, 1);
-      while (getDay(currentDate) !== this.startDayOfWeek) {
+      while (getDay(currentDate) !== this.startDayOfWeekNormalized) {
         currentDate = subDays(currentDate, 1);
       }
       return currentDate;
     },
     endDayOfCalendar(): Date {
       let currentDate = lastDayOfMonth(new Date(this.currentYear, this.currentMonth, 1));
-      while (getDay(currentDate) !== (this.startDayOfWeek + 6) % 7) {
+      while (getDay(currentDate) !== (this.startDayOfWeekNormalized + 6) % 7) {
         currentDate = addDays(currentDate, 1);
       }
       return currentDate;
     },
+    startDayOfNextMonth(): Date {
+      return addDays(this.endDayOfCalendar, 1);
+    },
     disabledSet(): Set<string> {
-      return new Set<string>(this.disabledDates.map(d => this.dateToKey(d)));
+      const datesKeys = this.disabledDates.map(d => dateToKey(d));
+      const datesSet = new Set<string>(datesKeys);
+      if (this.startDateSelected && !this.endDateSelected) {
+        const { startDayOfNextMonth, } = this;
+        return new Set<string>(
+          [ ...datesKeys,
+            ...getDisabledGroupDates(this.startDate, startDayOfNextMonth, datesSet), ]
+        );
+      }
+      return datesSet;
     },
   },
   methods: {
@@ -129,11 +172,76 @@ export default Vue.extend({
     onNextMonth(): void {
       this.currentDate = addMonths(this.currentDate, 1);
     },
-    dateToKey(date: Date): string {
-      return `${date.getDate()}-${date.getMonth()}-${date.getFullYear()}`;
+    selectDate(date: Date): void {
+      this.isMouseHover = false;
+      if (this.startDateSelected && !this.endDateSelected && isSameDay(date, this.startDate)) {
+        this.startDateSelected = false;
+        return;
+      }
+      if (this.startDateSelected && !this.endDateSelected && isBefore(date, this.startDate)) {
+        this.startDate = date;
+      } else if (!this.startDateSelected || this.endDateSelected) {
+        this.startDateSelected = true;
+        this.endDateSelected = false;
+        this.startDate = date;
+      } else {
+        this.endDateSelected = true;
+        this.endDate = date;
+        this.$emit('rangeChanged', {
+          startDate: this.startDate,
+          endDate: this.endDate,
+        });
+      }
+    },
+    onMouseHover(date: Date, disabled: boolean): void {
+      if (disabled) {
+        return;
+      }
+      this.isMouseHover = true;
+      this.hoverDate = date;
+    },
+    onMouseLeave(): void {
+      this.isMouseHover = false;
+    },
+    isDateBetween(date: Date): boolean {
+      if (!this.startDateSelected) {
+        return false;
+      }
+      const end = this.endDateSelected ? this.endDate
+        : (this.isMouseHover ? this.hoverDate : this.startDate);
+      return (isSameDay(date, this.startDate) || isAfter(date, this.startDate)) &&
+          (isSameDay(date, end) || isBefore(date, end));
+    },
+    isStartDay(currentDay: Date) {
+      return this.startDateSelected && isSameDay(this.startDate, currentDay);
+    },
+    isEndDay(currentDay: Date) {
+      if (this.endDateSelected && isSameDay(this.endDate, currentDay)) {
+        return true;
+      }
+      return this.isMouseHover && isSameDay(this.hoverDate, currentDay) && !this.endDateSelected;
     },
   },
 });
+
+function dateToKey(date: Date): string {
+  return `${date.getDate()}-${date.getMonth()}-${date.getFullYear()}`;
+}
+
+function getDisabledGroupDates(start: Date, startDayOfNextMonth: Date, disabled: Set<string>): string[] {
+  const result: string[] = [];
+  let current = start;
+  let foundFirstDisabled = false;
+  while (!isSameDay(current, startDayOfNextMonth)) {
+    const key = dateToKey(current);
+    foundFirstDisabled = foundFirstDisabled || disabled.has(key);
+    if (foundFirstDisabled) {
+      result.push(key);
+    }
+    current = addDays(current, 1);
+  }
+  return result;
+}
 </script>
 
 <style scoped lang="scss">
@@ -147,6 +255,7 @@ export default Vue.extend({
   grid-template-columns: repeat(7, 1fr);
   justify-items: center;
   margin-top: 10px;
+  grid-row-gap: 10px;
 }
 
 .eo-day-of-week {
@@ -158,13 +267,45 @@ export default Vue.extend({
   height: 40px;
 }
 
-.eo-today {
-  color: $green-color;
-  border: 3px solid $green-light-color;
-  border-radius: 50%;
-}
-
 .eo-disabled {
   color: $gray-lightest-color;
+}
+
+.eo-day-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  border-radius: 50%;
+
+  .eo-start-day &,
+  .eo-end-day & {
+    background-color: $green-color;
+    color: white;
+  }
+
+  .eo-today & {
+    color: $green-color;
+    border: 3px solid $green-light-color;
+  }
+
+  .eo-day-button:hover:not(.eo-start-day):not(.eo-end-day):not(.eo-today):not(.eo-disabled) & {
+    border: 1px solid $green-color;
+  }
+}
+
+.eo-between {
+  background-color: $green-lightest-color;
+  &.eo-start-day {
+    border-bottom-left-radius: 50%;
+    border-top-left-radius: 50%;
+  }
+}
+
+.eo-end-day {
+  border-bottom-right-radius: 50%;
+  border-top-right-radius: 50%;
 }
 </style>

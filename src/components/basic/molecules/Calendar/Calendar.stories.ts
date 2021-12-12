@@ -9,13 +9,14 @@ export default {
   title: 'Molecules/Calendar',
   component: Calendar,
   argTypes: {
+    rangeChanged: { action: 'rangeChanged', },
   },
 };
 
 const Template = (args: any, { argTypes, }: {argTypes: any[]}) => ({
   props: Object.keys(argTypes),
   components: { Calendar, },
-  template: '<Calendar v-bind="$props" />',
+  template: '<Calendar v-bind="$props" @rangeChanged="rangeChanged" />',
 });
 
 export const Simple = Template.bind({});
