@@ -11,9 +11,10 @@
       class="eo-button-text"
     >{{ text }}</span>
     <slot />
-    <span class="eo-icon-slot">
-      <slot name="icon" />
-    </span>
+    <slot
+      name="icon"
+      class="eo-icon-slot"
+    />
   </button>
 </template>
 
@@ -106,7 +107,7 @@ button {
       color: $white-color;
 
       &:hover {
-        background-color: $green-color-dark;
+        background-color: $green-dark-color;
       }
     }
 
