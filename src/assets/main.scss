@@ -1,0 +1,23 @@
+@import "variables";
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;700&display=swap');
+
+.eo-text-small {
+  font-size: $font-small;
+}
+.eo-text-medium {
+  font-size: $font-medium;
+}
+.eo-text-large {
+  font-size: $font-large;
+}
+
+.eo-flex-center-inline {
+  display: inline-flex;
+  justify-content: center;
+  align-content: center;
+}
+
+body {
+  font-family: 'Readex Pro', sans-serif;
+  color: $black-color;
+}

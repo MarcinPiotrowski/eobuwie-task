@@ -28,6 +28,8 @@ module.exports = {
     ],
     'no-unused-vars': 'error',
     'object-curly-spacing': ['error', 'always'],
+    'array-bracket-spacing': ['error', 'always'],
+    'space-before-function-paren': ['error', 'never'],
     'vue/object-curly-spacing': ['error', 'always'],
     'vue/mustache-interpolation-spacing': ['error', 'always'],
     '@typescript-eslint/no-explicit-any': 'off',
