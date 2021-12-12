@@ -74,11 +74,13 @@ describe('Calendar.vue', () => {
     });
 
     await wrapper.findAll('.eo-day-button').at(20).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
+    expect(wrapper.emitted().rangeChanged?.[0][0].endDateSelected).toEqual(false);
     await wrapper.findAll('.eo-day-button').at(23).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
+    expect(wrapper.emitted().rangeChanged?.length).toEqual(1);
     await wrapper.findAll('.eo-day-button').at(21).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeTruthy();
+    expect(wrapper.emitted().rangeChanged?.[1][0].endDateSelected).toEqual(true);
+    expect(wrapper.emitted().rangeChanged?.[1][0].startDate).toEqual(new Date(2021, 10, 20));
+    expect(wrapper.emitted().rangeChanged?.[1][0].endDate).toEqual(new Date(2021, 10, 21));
   });
 
   it('selects while navigating through months', async() => {
@@ -94,12 +96,9 @@ describe('Calendar.vue', () => {
     });
 
     await wrapper.findAll('.eo-day-button').at(20).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
     await wrapper.find('.eo-month-navigation button:nth-of-type(2)').trigger('click');
-    await wrapper.findAll('.eo-day-button').at(3).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
     await wrapper.findAll('.eo-day-button').at(2).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeTruthy();
+    expect(wrapper.emitted().rangeChanged?.length).toEqual(2);
   });
 
   it('disables groups', async() => {
@@ -115,10 +114,10 @@ describe('Calendar.vue', () => {
     });
 
     await wrapper.findAll('.eo-day-button').at(18).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
+    expect(wrapper.emitted().rangeChanged?.length).toEqual(1);
     await wrapper.findAll('.eo-day-button').at(30).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
+    expect(wrapper.emitted().rangeChanged?.length).toEqual(1);
     await wrapper.findAll('.eo-day-button').at(31).trigger('click');
-    expect(wrapper.emitted().rangeChanged).toBeFalsy();
+    expect(wrapper.emitted().rangeChanged?.length).toEqual(1);
   });
 });
