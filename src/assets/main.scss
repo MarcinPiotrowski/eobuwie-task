@@ -17,6 +17,16 @@
   align-content: center;
 }
 
+.eo-flex-center {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+}
+
+button {
+  padding: 0;
+}
+
 body {
   font-family: 'Readex Pro', sans-serif;
   color: $black-color;
