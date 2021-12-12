@@ -34,6 +34,8 @@
       <Calendar
         :start-selected="range.startDateSelected"
         :end-selected="range.endDateSelected"
+        :disabled-dates="disabledDates"
+        :initial-range="initialRange"
         @rangeChanged="onDatesChanged"
       />
     </div>
@@ -41,7 +43,7 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue';
+import Vue, { PropType } from 'vue';
 import Rating from '@/components/basic/molecules/Rating.vue';
 import CustomButton from '@/components/basic/atoms/CustomButton.vue';
 import { format } from 'date-fns';
@@ -68,15 +70,26 @@ export default Vue.extend({
       type: Number,
       required: true,
     },
+    disabledDates: {
+      type: Array as PropType<Array<Date>>,
+      default: () => [],
+    },
+    initialRange: {
+      type: Object as PropType<DateRange>,
+      required: false,
+      default: () => ({
+        startDateSelected: false,
+        endDateSelected: false,
+        startDate: new Date(),
+        endDate: new Date(),
+      }),
+    },
   },
   data() {
     return {
       calendarOpen: false,
       range: {
-        startDateSelected: false,
-        startDate: new Date(),
-        endDateSelected: false,
-        endDate: new Date(),
+        ...this.initialRange,
       },
     };
   },

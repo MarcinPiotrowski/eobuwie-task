@@ -99,15 +99,24 @@ export default Vue.extend({
       required: false,
       default: false,
     },
+    initialRange: {
+      type: Object as PropType<DateRange>,
+      required: false,
+      default: () => ({
+        startDateSelected: false,
+        endDateSelected: false,
+        startDate: new Date(),
+        endDate: new Date(),
+      }),
+    },
   },
   data() {
     return {
+      range: {
+        ...this.initialRange,
+      },
       currentDate: new Date(),
-      startDateSelected: false,
-      endDateSelected: false,
       isMouseHover: false,
-      startDate: new Date(),
-      endDate: new Date(),
       hoverDate: new Date(),
     };
   },
@@ -172,11 +181,12 @@ export default Vue.extend({
     disabledSet(): Set<string> {
       const datesKeys = this.disabledDates.map(d => dateToKey(d));
       const datesSet = new Set<string>(datesKeys);
-      if (this.startDateSelected && !this.endDateSelected) {
+      const { startDateSelected, endDateSelected, startDate, } = this.range;
+      if (startDateSelected && !endDateSelected) {
         const { startDayOfNextMonth, } = this;
         return new Set<string>(
           [ ...datesKeys,
-            ...getDisabledGroupDates(this.startDate, startDayOfNextMonth, datesSet), ]
+            ...getDisabledGroupDates(startDate, startDayOfNextMonth, datesSet), ]
         );
       }
       return datesSet;
@@ -184,10 +194,10 @@ export default Vue.extend({
   },
   watch: {
     startSelected(newVal) {
-      this.startDateSelected = newVal;
+      this.range.startDateSelected = newVal;
     },
     endSelected(newVal) {
-      this.endDateSelected = newVal;
+      this.range.endDateSelected = newVal;
     },
   },
   methods: {
@@ -199,26 +209,22 @@ export default Vue.extend({
     },
     selectDate(date: Date): void {
       this.isMouseHover = false;
-      if (this.startDateSelected && !this.endDateSelected && isSameDay(date, this.startDate)) {
-        this.startDateSelected = false;
+      const { startDateSelected, endDateSelected, startDate, } = this.range;
+      if (startDateSelected && !endDateSelected && isSameDay(date, startDate)) {
+        this.range.startDateSelected = false;
         return;
       }
-      if (this.startDateSelected && !this.endDateSelected && isBefore(date, this.startDate)) {
-        this.startDate = date;
-      } else if (!this.startDateSelected || this.endDateSelected) {
-        this.startDateSelected = true;
-        this.endDateSelected = false;
-        this.startDate = date;
+      if (startDateSelected && !endDateSelected && isBefore(date, startDate)) {
+        this.range.startDate = date;
+      } else if (!startDateSelected || endDateSelected) {
+        this.range.startDateSelected = true;
+        this.range.endDateSelected = false;
+        this.range.startDate = date;
       } else {
-        this.endDateSelected = true;
-        this.endDate = date;
+        this.range.endDateSelected = true;
+        this.range.endDate = date;
       }
-      this.$emit('rangeChanged', {
-        startDate: this.startDate,
-        endDate: this.endDate,
-        startDateSelected: this.startDateSelected,
-        endDateSelected: this.endDateSelected,
-      });
+      this.$emit('rangeChanged', this.range);
     },
     onMouseHover(date: Date, disabled: boolean): void {
       if (disabled) {
@@ -231,22 +237,24 @@ export default Vue.extend({
       this.isMouseHover = false;
     },
     isDateBetween(date: Date): boolean {
-      if (!this.startDateSelected) {
+      const { startDateSelected, endDateSelected, startDate, endDate, } = this.range;
+      if (!startDateSelected) {
         return false;
       }
-      const end = this.endDateSelected ? this.endDate
-        : (this.isMouseHover ? this.hoverDate : this.startDate);
-      return (isSameDay(date, this.startDate) || isAfter(date, this.startDate)) &&
+      const end = endDateSelected ? endDate
+        : (this.isMouseHover ? this.hoverDate : startDate);
+      return (isSameDay(date, startDate) || isAfter(date, startDate)) &&
           (isSameDay(date, end) || isBefore(date, end));
     },
     isStartDay(currentDay: Date) {
-      return this.startDateSelected && isSameDay(this.startDate, currentDay);
+      return this.range.startDateSelected && isSameDay(this.range.startDate, currentDay);
     },
     isEndDay(currentDay: Date) {
-      if (this.endDateSelected && isSameDay(this.endDate, currentDay)) {
+      const { endDateSelected, endDate, } = this.range;
+      if (endDateSelected && isSameDay(endDate, currentDay)) {
         return true;
       }
-      return this.isMouseHover && isSameDay(this.hoverDate, currentDay) && !this.endDateSelected;
+      return this.isMouseHover && isSameDay(this.hoverDate, currentDay) && !endDateSelected;
     },
   },
 });
