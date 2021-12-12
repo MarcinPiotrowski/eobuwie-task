@@ -75,7 +75,10 @@ export default Vue.extend({
 <style scoped lang="scss">
 .eo-month-navigation {
   display: flex;
-  width: 100%;
+  max-width: 100%;
+  padding: 10px 20px;
+  border: 1px solid $gray-lightest-color;
+  border-radius: 30px;
 }
 
 .eo-month {
