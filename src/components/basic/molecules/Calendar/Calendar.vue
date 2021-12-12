@@ -59,6 +59,13 @@ import CalendarNavigation from '@/components/basic/molecules/Calendar/CalendarNa
 
 const DAYS_SHORT = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ];
 
+export interface DateRange {
+  startDateSelected: boolean;
+  endDateSelected: boolean;
+  startDate: Date;
+  endDate: Date;
+}
+
 interface CalendarDay {
   date: Date;
   key: string;
@@ -81,6 +88,16 @@ export default Vue.extend({
     disabledDates: {
       type: Array as PropType<Array<Date>>,
       default: () => [],
+    },
+    startSelected: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    endSelected: {
+      type: Boolean,
+      required: false,
+      default: false,
     },
   },
   data() {
@@ -165,6 +182,14 @@ export default Vue.extend({
       return datesSet;
     },
   },
+  watch: {
+    startSelected(newVal) {
+      this.startDateSelected = newVal;
+    },
+    endSelected(newVal) {
+      this.endDateSelected = newVal;
+    },
+  },
   methods: {
     onPreviousMonth(): void {
       this.currentDate = subMonths(this.currentDate, 1);
@@ -187,11 +212,13 @@ export default Vue.extend({
       } else {
         this.endDateSelected = true;
         this.endDate = date;
-        this.$emit('rangeChanged', {
-          startDate: this.startDate,
-          endDate: this.endDate,
-        });
       }
+      this.$emit('rangeChanged', {
+        startDate: this.startDate,
+        endDate: this.endDate,
+        startDateSelected: this.startDateSelected,
+        endDateSelected: this.endDateSelected,
+      });
     },
     onMouseHover(date: Date, disabled: boolean): void {
       if (disabled) {
