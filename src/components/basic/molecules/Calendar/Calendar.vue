@@ -1,37 +1,10 @@
 <template>
   <div class="eo-calendar-main">
-    <div>
-      <div class="eo-month-navigation">
-        <CustomButton
-          :custom-styles="false"
-          @onClick="onPreviousMonth"
-        >
-          <IconBase
-            width="15"
-            height="15"
-            icon-name="Previous Month"
-          >
-            <ArrowLeft />
-          </IconBase>
-        </CustomButton>
-        <span class="eo-text-medium eo-month">
-          {{ currentMonthName }} {{ currentYear }}
-        </span>
-
-        <CustomButton
-          :custom-styles="false"
-          @onClick="onNextMonth"
-        >
-          <IconBase
-            width="15"
-            height="15"
-            icon-name="Next Month"
-          >
-            <ArrowRight />
-          </IconBase>
-        </CustomButton>
-      </div>
-    </div>
+    <CalendarNavigation
+      :current-date="currentDate"
+      @onPreviousMonth="onPreviousMonth"
+      @onNextMonth="onNextMonth"
+    />
     <div class="eo-calendar-days">
       <div
         v-for="dayOfWeek of daysOfWeeks"
@@ -68,12 +41,9 @@ import {
 } from 'date-fns';
 import Vue from 'vue';
 import CustomButton from '@/components/basic/atoms/CustomButton.vue';
-import IconBase from '@/components/basic/atoms/icons/IconBase.vue';
-import ArrowLeft from '@/components/basic/atoms/icons/ArrowLeft.vue';
-import ArrowRight from '@/components/basic/atoms/icons/ArrowRight.vue';
+import CalendarNavigation from '@/components/basic/molecules/Calendar/CalendarNavigation.vue';
 
 const DAYS_SHORT = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ];
-const MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', ];
 
 interface CalendarDay {
   key: string;
@@ -86,7 +56,7 @@ interface CalendarDay {
 }
 export default Vue.extend({
   name: 'Calendar',
-  components: { ArrowRight, ArrowLeft, IconBase, CustomButton, },
+  components: { CalendarNavigation, CustomButton, },
   props: {
     startDayOfWeek: {
       type: Number,
@@ -130,9 +100,6 @@ export default Vue.extend({
     currentYear(): number {
       return getYear(this.currentDate);
     },
-    currentMonthName(): string {
-      return MONTHS[this.currentMonth];
-    },
     startDayOfCalendar(): Date {
       let currentDate = new Date(this.currentYear, this.currentMonth, 1);
       while (getDay(currentDate) !== this.startDayOfWeek) {
@@ -174,17 +141,6 @@ export default Vue.extend({
 
 .eo-day-of-week {
   color: $gray-lighter-color;
-}
-
-.eo-month-navigation {
-  display: flex;
-  width: 100%;
-}
-
-.eo-month {
-  flex-grow: 1;
-  font-weight: bold;
-  text-align: center;
 }
 
 .eo-day-button {
