@@ -112,9 +112,11 @@ button {
     }
 
     &[disabled] {
-      cursor: default;
       filter: opacity(0.6);
     }
+  }
+  &[disabled] {
+    cursor: default;
   }
 }
 
