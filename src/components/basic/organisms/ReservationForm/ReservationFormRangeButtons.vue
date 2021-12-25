@@ -13,7 +13,7 @@
         @onClick="resetStartDate"
       >
         <IconBase
-          v-if="range.startDateSelected"
+          v-if="range.startDate !== undefined"
           width="10"
           height="10"
           icon-name="Close"
@@ -44,7 +44,7 @@
         @onClick="resetEndDate"
       >
         <IconBase
-          v-if="range.endDateSelected"
+          v-if="range.endDate !== undefined"
           width="10"
           height="10"
           icon-name="Close"
@@ -81,10 +81,10 @@ export default Vue.extend({
   },
   computed: {
     startText(): string {
-      return this.range.startDateSelected ? format(this.range.startDate, 'dd LLL Y') : 'From';
+      return this.range.startDate === undefined ? 'From' : format(this.range.startDate, 'dd LLL Y');
     },
     endText(): string {
-      return this.range.endDateSelected ? format(this.range.endDate, 'dd LLL Y') : 'To';
+      return this.range.endDate === undefined ? 'To' : format(this.range.endDate, 'dd LLL Y');
     },
   },
   methods: {

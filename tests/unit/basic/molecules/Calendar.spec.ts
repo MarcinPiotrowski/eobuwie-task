@@ -74,11 +74,11 @@ describe('Calendar.vue', () => {
     });
 
     await wrapper.findAll('.eo-day-button').at(20).trigger('click');
-    expect(wrapper.emitted().rangeChanged?.[0][0].endDateSelected).toEqual(false);
+    expect(wrapper.emitted().rangeChanged?.[0][0].endDate).toBeUndefined();
     await wrapper.findAll('.eo-day-button').at(23).trigger('click');
     expect(wrapper.emitted().rangeChanged?.length).toEqual(1);
     await wrapper.findAll('.eo-day-button').at(21).trigger('click');
-    expect(wrapper.emitted().rangeChanged?.[1][0].endDateSelected).toEqual(true);
+    expect(wrapper.emitted().rangeChanged?.[1][0].endDate).toBeDefined();
     expect(wrapper.emitted().rangeChanged?.[1][0].startDate).toEqual(new Date(2021, 10, 20));
     expect(wrapper.emitted().rangeChanged?.[1][0].endDate).toEqual(new Date(2021, 10, 21));
   });

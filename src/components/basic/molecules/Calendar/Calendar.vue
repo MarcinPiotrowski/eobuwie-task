@@ -60,10 +60,8 @@ import CalendarNavigation from '@/components/basic/molecules/Calendar/CalendarNa
 const DAYS_SHORT = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ];
 
 export interface DateRange {
-  startDateSelected: boolean;
-  endDateSelected: boolean;
-  startDate: Date;
-  endDate: Date;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
 }
 
 interface CalendarDay {
@@ -76,9 +74,13 @@ interface CalendarDay {
   isStart: boolean;
   isEnd: boolean;
 }
+
 export default Vue.extend({
   name: 'Calendar',
-  components: { CalendarNavigation, CustomButton, },
+  components: {
+    CalendarNavigation,
+    CustomButton,
+  },
   props: {
     startDayOfWeek: {
       type: Number,
@@ -87,37 +89,24 @@ export default Vue.extend({
     },
     disabledDates: {
       type: Array as PropType<Array<Date>>,
-      default: () => [],
-    },
-    startSelected: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
-    endSelected: {
-      type: Boolean,
-      required: false,
-      default: false,
+      default: (): Date[] => [],
     },
     initialRange: {
       type: Object as PropType<DateRange>,
       required: false,
-      default: () => ({
-        startDateSelected: false,
-        endDateSelected: false,
-        startDate: new Date(),
-        endDate: new Date(),
+      default: (): DateRange => ({
+        startDate: undefined,
+        endDate: undefined,
       }),
     },
   },
-  data() {
+  data(): { range: DateRange, currentDate: Date, hoverDate: Date | undefined } {
     return {
       range: {
         ...this.initialRange,
       },
       currentDate: new Date(),
-      isMouseHover: false,
-      hoverDate: new Date(),
+      hoverDate: undefined,
     };
   },
   computed: {
@@ -181,8 +170,8 @@ export default Vue.extend({
     disabledSet(): Set<string> {
       const datesKeys = this.disabledDates.map(d => dateToKey(d));
       const datesSet = new Set<string>(datesKeys);
-      const { startDateSelected, endDateSelected, startDate, } = this.range;
-      if (startDateSelected && !endDateSelected) {
+      const { startDate, endDate, } = this.range;
+      if (startDate !== undefined && endDate === undefined) {
         const { startDayOfNextMonth, } = this;
         return new Set<string>(
           [ ...datesKeys,
@@ -193,11 +182,8 @@ export default Vue.extend({
     },
   },
   watch: {
-    startSelected(newVal) {
-      this.range.startDateSelected = newVal;
-    },
-    endSelected(newVal) {
-      this.range.endDateSelected = newVal;
+    initialRange(newVal) {
+      this.range = newVal;
     },
   },
   methods: {
@@ -208,20 +194,18 @@ export default Vue.extend({
       this.currentDate = addMonths(this.currentDate, 1);
     },
     selectDate(date: Date): void {
-      this.isMouseHover = false;
-      const { startDateSelected, endDateSelected, startDate, } = this.range;
-      if (startDateSelected && !endDateSelected && isSameDay(date, startDate)) {
-        this.range.startDateSelected = false;
+      this.hoverDate = undefined;
+      const { startDate, endDate, } = this.range;
+      if (startDate !== undefined && endDate === undefined && isSameDay(date, startDate)) {
+        this.range.startDate = undefined;
         return;
       }
-      if (startDateSelected && !endDateSelected && isBefore(date, startDate)) {
+      if (startDate !== undefined && endDate === undefined && isBefore(date, startDate)) {
         this.range.startDate = date;
-      } else if (!startDateSelected || endDateSelected) {
-        this.range.startDateSelected = true;
-        this.range.endDateSelected = false;
+      } else if (startDate === undefined || endDate !== undefined) {
+        this.range.endDate = undefined;
         this.range.startDate = date;
       } else {
-        this.range.endDateSelected = true;
         this.range.endDate = date;
       }
       this.$emit('rangeChanged', this.range);
@@ -230,31 +214,30 @@ export default Vue.extend({
       if (disabled) {
         return;
       }
-      this.isMouseHover = true;
       this.hoverDate = date;
     },
     onMouseLeave(): void {
-      this.isMouseHover = false;
+      this.hoverDate = undefined;
     },
     isDateBetween(date: Date): boolean {
-      const { startDateSelected, endDateSelected, startDate, endDate, } = this.range;
-      if (!startDateSelected) {
+      const { startDate, endDate, } = this.range;
+      if (startDate === undefined) {
         return false;
       }
-      const end = endDateSelected ? endDate
-        : (this.isMouseHover ? this.hoverDate : startDate);
+      const end = endDate !== undefined ? endDate
+        : (this.hoverDate === undefined ? startDate : this.hoverDate);
       return (isSameDay(date, startDate) || isAfter(date, startDate)) &&
           (isSameDay(date, end) || isBefore(date, end));
     },
     isStartDay(currentDay: Date) {
-      return this.range.startDateSelected && isSameDay(this.range.startDate, currentDay);
+      return this.range.startDate !== undefined && isSameDay(this.range.startDate, currentDay);
     },
     isEndDay(currentDay: Date) {
-      const { endDateSelected, endDate, } = this.range;
-      if (endDateSelected && isSameDay(endDate, currentDay)) {
+      const { endDate, } = this.range;
+      if (endDate !== undefined && isSameDay(endDate, currentDay)) {
         return true;
       }
-      return this.isMouseHover && isSameDay(this.hoverDate, currentDay) && !endDateSelected;
+      return this.hoverDate !== undefined && isSameDay(this.hoverDate, currentDay) && endDate === undefined;
     },
   },
 });
@@ -279,7 +262,8 @@ function getDisabledGroupDates(start: Date, startDayOfNextMonth: Date, disabled:
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped
+       lang="scss">
 .eo-calendar-main {
   display: inline-flex;
   flex-direction: column;
@@ -333,6 +317,7 @@ function getDisabledGroupDates(start: Date, startDayOfNextMonth: Date, disabled:
 
 .eo-between {
   background-color: $green-lightest-color;
+
   &.eo-start-day {
     border-bottom-left-radius: 50%;
     border-top-left-radius: 50%;

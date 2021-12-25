@@ -32,8 +32,6 @@
       :class="{ 'eo-calendar-open': calendarOpen }"
     >
       <Calendar
-        :start-selected="range.startDateSelected"
-        :end-selected="range.endDateSelected"
         :disabled-dates="disabledDates"
         :initial-range="initialRange"
         @rangeChanged="onDatesChanged"
@@ -46,7 +44,6 @@
 import Vue, { PropType } from 'vue';
 import Rating from '@/components/basic/molecules/Rating.vue';
 import CustomButton from '@/components/basic/atoms/CustomButton.vue';
-import { format } from 'date-fns';
 import Calendar, { DateRange } from '@/components/basic/molecules/Calendar/Calendar.vue';
 import vco from 'v-click-outside';
 import ReservationFormRangeButtons from '@/components/basic/organisms/ReservationForm/ReservationFormRangeButtons.vue';
@@ -77,11 +74,9 @@ export default Vue.extend({
     initialRange: {
       type: Object as PropType<DateRange>,
       required: false,
-      default: () => ({
-        startDateSelected: false,
-        endDateSelected: false,
-        startDate: new Date(),
-        endDate: new Date(),
+      default: (): DateRange => ({
+        startDate: undefined,
+        endDate: undefined,
       }),
     },
   },
@@ -94,14 +89,8 @@ export default Vue.extend({
     };
   },
   computed: {
-    startText(): string {
-      return this.range.startDateSelected ? format(this.range.startDate, 'dd LLL Y') : 'From';
-    },
-    endText(): string {
-      return this.range.endDateSelected ? format(this.range.endDate, 'dd LLL Y') : 'To';
-    },
     formValid(): boolean {
-      return this.range.startDateSelected && this.range.endDateSelected;
+      return this.range.startDate !== undefined && this.range.endDate !== undefined;
     },
   },
   methods: {
@@ -115,11 +104,11 @@ export default Vue.extend({
       this.range = range;
     },
     resetStartDate() {
-      this.range.startDateSelected = false;
-      this.range.endDateSelected = false;
+      this.range.startDate = undefined;
+      this.range.endDate = undefined;
     },
     resetEndDate() {
-      this.range.endDateSelected = false;
+      this.range.endDate = undefined;
     },
   },
 }
