@@ -62,8 +62,9 @@ export default Vue.extend({
       return Math.min(maxStars, Math.max(1, this.rating));
     },
     stars(): StarType[] {
-      const integralPart = Math.floor(this.ratingNormalized);
-      const fractionalPart = this.ratingNormalized % 1;
+      const { ratingNormalized, } = this;
+      const integralPart = Math.floor(ratingNormalized);
+      const fractionalPart = ratingNormalized % 1;
       const fullStars = integralPart + (fractionalPart >= 0.75 ? 1 : 0);
       const halfStar = fractionalPart > 0.25 && fractionalPart < 0.75 ? 1 : 0;
       const emptyStars = maxStars - fullStars - halfStar;

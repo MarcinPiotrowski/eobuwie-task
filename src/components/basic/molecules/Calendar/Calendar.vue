@@ -17,7 +17,7 @@
         {{ dayOfWeek }}
       </div>
       <CustomButton
-        v-for="{ key, isToday, disabled, isStart, isEnd, isBetween, date, day } of daysForCurrentMonth"
+        v-for="{ key, isToday, disabled, isStart, isEnd, isBetween, date, day } of calendarDaysForCurrentMonth"
         :key="key"
         class="eo-text-small eo-day-button"
         :class="{ 'eo-today': isToday,
@@ -59,9 +59,19 @@ import CalendarNavigation from '@/components/basic/molecules/Calendar/CalendarNa
 
 const DAYS_SHORT = [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ];
 
+export type OptionalDate = Date | undefined;
+
 export interface DateRange {
-  startDate: Date | undefined;
-  endDate: Date | undefined;
+  startDate: OptionalDate;
+  endDate: OptionalDate;
+}
+
+export function isDateSet(date: OptionalDate): date is Date {
+  return date !== undefined;
+}
+
+export function isDateNotSet(date: OptionalDate): date is undefined {
+  return date === undefined;
 }
 
 interface CalendarDay {
@@ -100,12 +110,12 @@ export default Vue.extend({
       }),
     },
   },
-  data(): { range: DateRange, currentDate: Date, hoverDate: Date | undefined } {
+  data(): { range: DateRange, startOfCurrentMonthDate: Date, hoverDate: OptionalDate } {
     return {
       range: {
         ...this.initialRange,
       },
-      currentDate: new Date(),
+      startOfCurrentMonthDate: currentStartOfMonth(),
       hoverDate: undefined,
     };
   },
@@ -113,12 +123,15 @@ export default Vue.extend({
     startDayOfWeekNormalized(): number {
       return this.startDayOfWeek % 7;
     },
+    endDayOfWeekNormalized(): number {
+      return (this.startDayOfWeekNormalized + 6) % 7;
+    },
     daysOfWeeks(): string[] {
       return [ ...DAYS_SHORT.slice(this.startDayOfWeekNormalized), ...DAYS_SHORT.slice(0, this.startDayOfWeekNormalized), ];
     },
-    daysForCurrentMonth(): CalendarDay[] {
+    calendarDaysForCurrentMonth(): CalendarDay[] {
       const today = new Date();
-      return this.simpleDaysForCurrentMonth.map(d => {
+      return this.daysForCurrentMonth.map(d => {
         const key = dateToKey(d);
         return {
           date: d,
@@ -130,49 +143,52 @@ export default Vue.extend({
           isToday: isSameDay(d, today),
           key,
         };
-      }
-      );
+      });
     },
-    simpleDaysForCurrentMonth(): Date[] {
+    daysForCurrentMonth(): Date[] {
       const result: Date[] = [];
-      const { startDayOfCalendar, startDayOfNextMonth, } = this;
-      let currentDay = startDayOfCalendar;
-      while (!isSameDay(currentDay, startDayOfNextMonth)) {
-        result.push(currentDay);
-        currentDay = addDays(currentDay, 1);
+      const { startDayOfCalendarMonthView, startDayOfNextMonth, } = this;
+      let iterDate = startDayOfCalendarMonthView;
+      while (!isSameDay(iterDate, startDayOfNextMonth)) {
+        result.push(iterDate);
+        iterDate = addDays(iterDate, 1);
       }
 
       return result;
     },
-    currentMonth(): number {
-      return getMonth(this.currentDate);
-    },
-    currentYear(): number {
-      return getYear(this.currentDate);
-    },
-    startDayOfCalendar(): Date {
-      let currentDate = new Date(this.currentYear, this.currentMonth, 1);
-      while (getDay(currentDate) !== this.startDayOfWeekNormalized) {
-        currentDate = subDays(currentDate, 1);
+    startDayOfCalendarMonthView(): Date {
+      let {
+        startOfCurrentMonthDate: iterDate,
+        startDayOfWeekNormalized,
+      } = this;
+      while (getDay(iterDate) !== startDayOfWeekNormalized) {
+        iterDate = subDays(iterDate, 1);
       }
-      return currentDate;
+      return iterDate;
     },
-    endDayOfCalendar(): Date {
-      let currentDate = lastDayOfMonth(new Date(this.currentYear, this.currentMonth, 1));
-      while (getDay(currentDate) !== (this.startDayOfWeekNormalized + 6) % 7) {
-        currentDate = addDays(currentDate, 1);
+    endDayOfCalendarMonthView(): Date {
+      let {
+        startOfCurrentMonthDate: iterDate,
+        endDayOfWeekNormalized,
+      } = this;
+      iterDate = lastDayOfMonth(iterDate);
+      while (getDay(iterDate) !== endDayOfWeekNormalized) {
+        iterDate = addDays(iterDate, 1);
       }
-      return currentDate;
+      return iterDate;
     },
     startDayOfNextMonth(): Date {
-      return addDays(this.endDayOfCalendar, 1);
+      return addDays(this.endDayOfCalendarMonthView, 1);
     },
     disabledSet(): Set<string> {
-      const datesKeys = this.disabledDates.map(d => dateToKey(d));
+      const {
+        range: { startDate, endDate, },
+        disabledDates,
+        startDayOfNextMonth,
+      } = this;
+      const datesKeys = disabledDates.map(dateToKey);
       const datesSet = new Set<string>(datesKeys);
-      const { startDate, endDate, } = this.range;
-      if (startDate !== undefined && endDate === undefined) {
-        const { startDayOfNextMonth, } = this;
+      if (isDateSet(startDate) && isDateNotSet(endDate)) {
         return new Set<string>(
           [ ...datesKeys,
             ...getDisabledGroupDates(startDate, startDayOfNextMonth, datesSet), ]
@@ -188,27 +204,30 @@ export default Vue.extend({
   },
   methods: {
     onPreviousMonth(): void {
-      this.currentDate = subMonths(this.currentDate, 1);
+      this.startOfCurrentMonthDate = subMonths(this.startOfCurrentMonthDate, 1);
     },
     onNextMonth(): void {
-      this.currentDate = addMonths(this.currentDate, 1);
+      this.startOfCurrentMonthDate = addMonths(this.startOfCurrentMonthDate, 1);
     },
     selectDate(date: Date): void {
       this.hoverDate = undefined;
-      const { startDate, endDate, } = this.range;
-      if (startDate !== undefined && endDate === undefined && isSameDay(date, startDate)) {
-        this.range.startDate = undefined;
+      const {
+        range,
+        range: { startDate, endDate, },
+      } = this;
+      if (isSameValidDay(date, startDate) && isDateNotSet(endDate)) {
+        range.startDate = undefined;
         return;
       }
-      if (startDate !== undefined && endDate === undefined && isBefore(date, startDate)) {
-        this.range.startDate = date;
-      } else if (startDate === undefined || endDate !== undefined) {
-        this.range.endDate = undefined;
-        this.range.startDate = date;
+      if (isDateSet(startDate) && isDateNotSet(endDate) && isBefore(date, startDate)) {
+        range.startDate = date;
+      } else if (isDateNotSet(startDate) || isDateSet(endDate)) {
+        range.endDate = undefined;
+        range.startDate = date;
       } else {
-        this.range.endDate = date;
+        range.endDate = date;
       }
-      this.$emit('rangeChanged', this.range);
+      this.$emit('rangeChanged', { ...range, });
     },
     onMouseHover(date: Date, disabled: boolean): void {
       if (disabled) {
@@ -220,27 +239,42 @@ export default Vue.extend({
       this.hoverDate = undefined;
     },
     isDateBetween(date: Date): boolean {
-      const { startDate, endDate, } = this.range;
-      if (startDate === undefined) {
+      const {
+        range: { startDate, endDate, },
+        hoverDate,
+      }: { range: DateRange, hoverDate: OptionalDate } = this;
+      if (isDateNotSet(startDate)) {
         return false;
       }
-      const end = endDate !== undefined ? endDate
-        : (this.hoverDate === undefined ? startDate : this.hoverDate);
+      const end = isDateSet(endDate) ? endDate
+        : isDateSet(hoverDate) ? hoverDate : startDate;
       return (isSameDay(date, startDate) || isAfter(date, startDate)) &&
           (isSameDay(date, end) || isBefore(date, end));
     },
     isStartDay(currentDay: Date) {
-      return this.range.startDate !== undefined && isSameDay(this.range.startDate, currentDay);
+      return isSameValidDay(this.range.startDate, currentDay);
     },
     isEndDay(currentDay: Date) {
-      const { endDate, } = this.range;
-      if (endDate !== undefined && isSameDay(endDate, currentDay)) {
+      const { range: { endDate, }, hoverDate, }: { range: DateRange, hoverDate: OptionalDate } = this;
+      if (isSameValidDay(endDate, currentDay)) {
         return true;
       }
-      return this.hoverDate !== undefined && isSameDay(this.hoverDate, currentDay) && endDate === undefined;
+      return isSameValidDay(hoverDate, currentDay) && isDateNotSet(endDate);
     },
   },
 });
+
+function isSameValidDay(firstDate: OptionalDate, secondDate: OptionalDate): boolean {
+  if (isDateNotSet(firstDate) || isDateNotSet(secondDate)) {
+    return false;
+  }
+  return isSameDay(firstDate, secondDate);
+}
+
+function currentStartOfMonth(): Date {
+  const currentDate = new Date();
+  return new Date(getYear(currentDate), getMonth(currentDate), 1);
+}
 
 function dateToKey(date: Date): string {
   return `${date.getDate()}-${date.getMonth()}-${date.getFullYear()}`;
@@ -248,15 +282,15 @@ function dateToKey(date: Date): string {
 
 function getDisabledGroupDates(start: Date, startDayOfNextMonth: Date, disabled: Set<string>): string[] {
   const result: string[] = [];
-  let current = start;
+  let iterDate = start;
   let foundFirstDisabled = false;
-  while (!isSameDay(current, startDayOfNextMonth)) {
-    const key = dateToKey(current);
-    foundFirstDisabled = foundFirstDisabled || disabled.has(key);
+  while (!isSameDay(iterDate, startDayOfNextMonth)) {
+    const key = dateToKey(iterDate);
+    foundFirstDisabled ||= disabled.has(key);
     if (foundFirstDisabled) {
       result.push(key);
     }
-    current = addDays(current, 1);
+    iterDate = addDays(iterDate, 1);
   }
   return result;
 }

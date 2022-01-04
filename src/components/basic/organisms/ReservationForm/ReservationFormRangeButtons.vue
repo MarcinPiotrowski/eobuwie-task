@@ -62,12 +62,17 @@ import CustomButton from '@/components/basic/atoms/CustomButton.vue';
 import IconBase from '@/components/basic/atoms/icons/IconBase.vue';
 import ArrowFullRight from '@/components/basic/atoms/icons/ArrowFullRight.vue';
 import { format } from 'date-fns';
-import { DateRange } from '@/components/basic/molecules/Calendar/Calendar.vue';
+import { DateRange, isDateNotSet, OptionalDate } from '@/components/basic/molecules/Calendar/Calendar.vue';
 import CloseIcon from '@/components/basic/atoms/icons/CloseIcon.vue';
 
 export default Vue.extend({
   name: 'ReservationFormRangeButtons',
-  components: { CloseIcon, ArrowFullRight, IconBase, CustomButton, },
+  components: {
+    CloseIcon,
+    ArrowFullRight,
+    IconBase,
+    CustomButton,
+  },
   props: {
     range: {
       type: Object as PropType<DateRange>,
@@ -81,10 +86,12 @@ export default Vue.extend({
   },
   computed: {
     startText(): string {
-      return this.range.startDate === undefined ? 'From' : format(this.range.startDate, 'dd LLL Y');
+      const { startDate, }: {startDate: OptionalDate} = this.range;
+      return isDateNotSet(startDate) ? 'From' : format(startDate, 'dd LLL Y');
     },
     endText(): string {
-      return this.range.endDate === undefined ? 'To' : format(this.range.endDate, 'dd LLL Y');
+      const { endDate, }: {endDate: OptionalDate} = this.range;
+      return isDateNotSet(endDate) ? 'To' : format(endDate, 'dd LLL Y');
     },
   },
   methods: {
@@ -102,7 +109,8 @@ export default Vue.extend({
 );
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss"
+       scoped>
 
 .eo-calendar-buttons {
   display: flex;
